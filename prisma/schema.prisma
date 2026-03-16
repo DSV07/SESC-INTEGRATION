@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int          @id @default(autoincrement())
+  name        String
+  email       String       @unique
+  password    String
+  role        String       @default("Aluno")
+  department  String?
+  avatar      String?
+  files       File[]
+  messages    Message[]
+  notes       Note[]
+  activities  Activity[]
+  tasks       Task[]
+  SharedNote  SharedNote[]
+  SharedTask  SharedTask[]
+}
+
+model Channel {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  messages    Message[]
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  channel_id Int
+  user_id    Int
+  content    String   @db.Text
+  created_at DateTime @default(now())
+  channel    Channel  @relation(fields: [channel_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
+
+  @@index([channel_id], map: "Message_channel_id_fkey")
+  @@index([user_id], map: "Message_user_id_fkey")
+}
+
+model Note {
+  id         Int          @id @default(autoincrement())
+  user_id    Int
+  title      String
+  content    String?      @db.Text
+  color      String       @default("#ffffff")
+  is_pinned  Boolean      @default(false)
+  created_at DateTime     @default(now())
+  user       User         @relation(fields: [user_id], references: [id])
+  shares     SharedNote[]
+
+  @@index([user_id], map: "Note_user_id_fkey")
+}
+
+model SharedNote {
+  id         Int    @id @default(autoincrement())
+  note_id    Int
+  user_id    Int
+  permission String @default("VIEW") // VIEW or EDIT
+  note       Note   @relation(fields: [note_id], references: [id], onDelete: Cascade)
+  user       User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([note_id])
+  @@index([user_id])
+}
+
+model Task {
+  id          Int          @id @default(autoincrement())
+  user_id     Int
+  title       String
+  description String?      @db.Text
+  due_date    DateTime?
+  status      String       @default("PENDING")
+  is_shared   Boolean      @default(false)
+  created_at  DateTime     @default(now())
+  user        User         @relation(fields: [user_id], references: [id])
+  shares      SharedTask[]
+
+  @@index([user_id], map: "tasks_user_id_fkey")
+  @@map("tasks")
+}
+
+model SharedTask {
+  id         Int    @id @default(autoincrement())
+  task_id    Int
+  user_id    Int
+  permission String @default("VIEW") // VIEW or EDIT
+  task       Task   @relation(fields: [task_id], references: [id], onDelete: Cascade)
+  user       User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([task_id])
+  @@index([user_id])
+}
+
+model File {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  name       String
+  size       Int
+  type       String
+  content    String   @db.LongText
+  folder     String   @default("General")
+  location   String   @default("PERSONAL")
+  is_shared  Boolean  @default(false)
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], map: "File_user_id_fkey")
+}
+
+model Activity {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  type        String
+  description String
+  created_at  DateTime @default(now())
+  user        User     @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], map: "activities_user_id_fkey")
+  @@map("activities")
+}

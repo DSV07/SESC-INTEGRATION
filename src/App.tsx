@@ -1,8 +1,4 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -13,8 +9,17 @@ import Planner from './pages/Planner';
 import Files from './pages/Files';
 import Notes from './pages/Notes';
 import Profile from './pages/Profile';
+import { useAuthStore } from './store/authStore';
 
 export default function App() {
+  const { checkSession, isAuthenticated } = useAuthStore();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkSession();
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>

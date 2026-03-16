@@ -6,11 +6,14 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setIsLoading(true);
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -25,18 +28,23 @@ export default function Login() {
       navigate('/');
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-sm border border-slate-100">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900">
-            EduConnect
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 rounded-3xl mb-4 shadow-xl shadow-orange-100 rotate-3">
+             <span className="text-3xl font-black text-white -rotate-3">S</span>
+          </div>
+          <h2 className="text-4xl font-black text-blue-900 tracking-tighter">
+            SESC Integration
           </h2>
-          <p className="mt-2 text-center text-sm text-slate-600">
-            Acesse sua conta institucional
+          <p className="mt-2 text-sm font-bold text-slate-500 uppercase tracking-widest">
+            Acesse sua conta corporativa
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -51,7 +59,7 @@ export default function Login() {
               <input
                 type="email"
                 required
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-slate-300 placeholder-slate-500 text-slate-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-xl relative block w-full px-4 py-3 border border-slate-200 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all sm:text-sm bg-slate-50/50"
                 placeholder="Email institucional"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -62,7 +70,7 @@ export default function Login() {
               <input
                 type="password"
                 required
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-slate-300 placeholder-slate-500 text-slate-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-xl relative block w-full px-4 py-3 border border-slate-200 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all sm:text-sm bg-slate-50/50"
                 placeholder="Senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -73,16 +81,20 @@ export default function Login() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-black rounded-xl text-white bg-blue-800 hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 transition-all shadow-lg shadow-blue-100 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Entrar
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              ) : null}
+              {isLoading ? 'Autenticando...' : 'Entrar no Sistema'}
             </button>
           </div>
           
           <div className="text-center text-sm">
-            <span className="text-slate-500">Não tem uma conta? </span>
-            <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-              Cadastre-se
+            <span className="text-slate-500 font-medium">Equipe SESC? </span>
+            <Link to="/register" className="font-bold text-orange-600 hover:text-orange-700 underline underline-offset-4">
+              Crie seu acesso agora
             </Link>
           </div>
         </form>

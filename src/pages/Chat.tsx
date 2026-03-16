@@ -29,6 +29,7 @@ export default function Chat() {
   const [newMessage, setNewMessage] = useState('');
   const [socket, setSocket] = useState<Socket | null>(null);
   const [showChannelsOnMobile, setShowChannelsOnMobile] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -57,12 +58,17 @@ export default function Chat() {
     if (!activeChannel || !socket) return;
 
     socket.emit('join_channel', activeChannel.id);
+    setIsLoading(true);
 
     fetch(`/api/channels/${activeChannel.id}/messages`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
-      .then(data => setMessages(data));
+      .then(data => {
+        setMessages(data);
+        setIsLoading(false);
+      })
+      .catch(() => setIsLoading(false));
 
     const handleReceiveMessage = (message: Message) => {
       setMessages(prev => [...prev, message]);
@@ -146,44 +152,55 @@ export default function Chat() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              {messages.map((msg, idx) => {
-                const isMe = msg.user_id === user?.id;
-                const showHeader = idx === 0 || messages[idx - 1].user_id !== msg.user_id;
-                
-                return (
-                  <div key={msg.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
-                    {showHeader ? (
-                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                        {msg.user_avatar ? (
-                          <img src={msg.user_avatar} alt="" className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          <UserCircle className="w-6 h-6 text-slate-400" />
-                        )}
-                      </div>
-                    ) : (
-                      <div className="w-8 shrink-0"></div>
-                    )}
-                    
-                    <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[70%]`}>
-                      {showHeader && (
-                        <div className="flex items-baseline gap-2 mb-1">
-                          <span className="text-sm font-medium text-slate-900">{isMe ? 'Você' : msg.user_name}</span>
-                          <span className="text-xs text-slate-400">
-                            {format(new Date(msg.created_at), 'HH:mm')}
-                          </span>
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center h-full space-y-4">
+                  <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Carregando Conversa...</p>
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                   <p className="text-sm">Nenhuma mensagem ainda neste canal.</p>
+                </div>
+              ) : (
+                messages.map((msg, idx) => {
+                  const isMe = msg.user_id === user?.id;
+                  const showHeader = idx === 0 || messages[idx - 1].user_id !== msg.user_id;
+                  
+                  return (
+                    <div key={msg.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
+                      {showHeader ? (
+                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                          {msg.user_avatar ? (
+                            <img src={msg.user_avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            <UserCircle className="w-6 h-6 text-slate-400" />
+                          )}
                         </div>
+                      ) : (
+                        <div className="w-8 shrink-0"></div>
                       )}
-                      <div className={`px-4 py-2 rounded-2xl text-sm ${
-                        isMe 
-                          ? 'bg-indigo-600 text-white rounded-tr-none' 
-                          : 'bg-slate-100 text-slate-900 rounded-tl-none'
-                      }`}>
-                        {msg.content}
+                      
+                      <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[70%]`}>
+                        {showHeader && (
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="text-sm font-medium text-slate-900">{isMe ? 'Você' : msg.user_name}</span>
+                            <span className="text-xs text-slate-400">
+                              {format(new Date(msg.created_at), 'HH:mm')}
+                            </span>
+                          </div>
+                        )}
+                        <div className={`px-4 py-2 rounded-2xl text-sm ${
+                          isMe 
+                            ? 'bg-blue-600 text-white rounded-tr-none' 
+                            : 'bg-slate-100 text-slate-900 rounded-tl-none'
+                        }`}>
+                          {msg.content}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
               <div ref={messagesEndRef} />
             </div>
 

@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+.git
+.vscode
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.agent
+.gemini
+brain
+task.md
+implementation_plan.md
+walkthrough.md
