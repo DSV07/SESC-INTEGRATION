@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
-import { UserCircle, Mail, Briefcase, Building2, LogOut, Camera, Save, X } from 'lucide-react';
+import { UserCircle, Mail, Briefcase, Building2, LogOut, Camera, Save, X, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function Profile() {
   const { user, token, logout, setUser } = useAuthStore();
@@ -9,7 +9,59 @@ export default function Profile() {
   const [avatar, setAvatar] = useState(user?.avatar || '');
   const [loading, setLoading] = useState(false);
 
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
   if (!user) return null;
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordError('As senhas não coincidem');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('A nova senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+
+      if (res.ok) {
+        setPasswordSuccess(true);
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => {
+          setShowPasswordModal(false);
+          setPasswordSuccess(false);
+        }, 3000);
+      } else {
+        const errorData = await res.json();
+        setPasswordError(errorData.error || 'Erro ao alterar senha');
+      }
+    } catch (error) {
+      setPasswordError('Não foi possível conectar ao servidor');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -159,6 +211,24 @@ export default function Profile() {
         </div>
       </div>
 
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center">
+            <Lock className="w-6 h-6 text-amber-600" />
+          </div>
+          <div>
+            <h3 className="font-black uppercase tracking-tight text-slate-900">Segurança da Conta</h3>
+            <p className="text-slate-500 text-xs font-medium">Mantenha sua conta protegida alterando sua senha regularmente.</p>
+          </div>
+        </div>
+        <button 
+          onClick={() => setShowPasswordModal(true)}
+          className="w-full md:w-auto px-8 py-3 bg-white border-2 border-slate-200 text-slate-700 font-black rounded-2xl hover:border-amber-500 hover:text-amber-600 transition-all shadow-sm text-xs tracking-widest uppercase"
+        >
+          Alterar Senha
+        </button>
+      </div>
+
       <div className="flex flex-col sm:flex-row items-center justify-between p-6 bg-slate-900 rounded-3xl text-white shadow-xl shadow-slate-200 relative overflow-hidden group">
         <div className="absolute right-0 top-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-indigo-500/20 transition-all"></div>
         <div className="flex items-center gap-4 relative">
@@ -177,6 +247,111 @@ export default function Profile() {
           Encerrar Sessão
         </button>
       </div>
+
+      {/* Modal Alterar Senha */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight">Alterar Senha</h2>
+              </div>
+              {!loading && (
+                <button 
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setPasswordError(null);
+                    setPasswordSuccess(false);
+                  }} 
+                  className="text-slate-400 hover:bg-slate-100 p-2 rounded-xl transition-colors"
+                >
+                  <X className="w-5 h-5"/>
+                </button>
+              )}
+            </div>
+            
+            <form onSubmit={handleChangePassword} className="p-6 space-y-5">
+              {passwordSuccess ? (
+                <div className="py-8 flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in">
+                  <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-10 h-10" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900">Tudo pronto!</h3>
+                    <p className="text-slate-500 text-sm">Sua senha foi alterada com sucesso.</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Senha Atual</label>
+                    <input 
+                      type="password"
+                      required
+                      value={currentPassword}
+                      onChange={e => setCurrentPassword(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Nova Senha</label>
+                    <input 
+                      type="password"
+                      required
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      placeholder="Mínimo 6 caracteres"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
+                    <input 
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                      placeholder="Repita a nova senha"
+                    />
+                  </div>
+
+                  {passwordError && (
+                    <div className="flex items-center gap-2 p-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-100 animate-shake">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      {passwordError}
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex gap-3">
+                    <button 
+                      type="button"
+                      disabled={loading}
+                      onClick={() => setShowPasswordModal(false)}
+                      className="flex-1 px-6 py-3 border-2 border-slate-100 text-slate-500 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit"
+                      disabled={loading || !currentPassword || !newPassword || !confirmPassword}
+                      className="flex-[1.5] px-6 py-3 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest animate-pulse-subtle hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:animate-none"
+                    >
+                      {loading ? 'Processando...' : 'Confirmar Troca'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
