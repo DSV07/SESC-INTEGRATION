@@ -10,7 +10,7 @@ export class FilesService {
     return await prisma.file.findMany({
       where,
       include: {
-        user: { select: { name: true } }
+        user: { select: { id: true, name: true } }
       },
       orderBy: { created_at: 'desc' },
     });
@@ -29,12 +29,13 @@ export class FilesService {
     });
   }
 
-  async delete(userId, fileId) {
+  async delete(userId, userRole, fileId) {
+    const where = userRole === 'admin' 
+      ? { id: Number(fileId) }
+      : { id: Number(fileId), user_id: userId };
+
     return await prisma.file.deleteMany({
-      where: {
-        id: Number(fileId),
-        user_id: userId,
-      },
+      where,
     });
   }
 }

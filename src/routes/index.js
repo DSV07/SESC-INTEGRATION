@@ -139,7 +139,7 @@ routes.post('/files', asyncHandler(async (req, res) => {
 }));
 
 routes.delete('/files/:id', asyncHandler(async (req, res) => {
-  await filesService.delete(req.user.id, req.params.id);
+  await filesService.delete(req.user.id, req.user.role, req.params.id);
   res.json({ success: true });
 }));
 

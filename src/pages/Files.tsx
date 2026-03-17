@@ -18,18 +18,25 @@ interface FileData {
   name: string;
   size: number;
   type: string;
+  content?: string;
   is_shared: boolean;
-  user: { name: string };
+  user_id: number;
+  user: { id: number, name: string };
   created_at: string;
 }
 
 export default function Files() {
-  const { token } = useAuthStore();
+  const { user, token } = useAuthStore();
   const [files, setFiles] = useState<FileData[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'personal' | 'network'>('network');
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean, fileId: number | null }>({
+    isOpen: false,
+    fileId: null
+  });
 
   const fetchFiles = async () => {
     setIsLoading(true);
@@ -87,14 +94,26 @@ export default function Files() {
   };
 
   const handleDelete = async (id: number) => {
+    setDeleteModal({ isOpen: true, fileId: id });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.fileId) return;
+    
+    setIsActionLoading(true);
     try {
-      const res = await fetch(`/api/files/${id}`, {
+      const res = await fetch(`/api/files/${deleteModal.fileId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) await fetchFiles();
+      if (res.ok) {
+        await fetchFiles();
+        setDeleteModal({ isOpen: false, fileId: null });
+      }
     } catch (error) {
       console.error('Erro ao excluir:', error);
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
@@ -236,15 +255,15 @@ export default function Files() {
                       >
                         <Download className="w-4 h-4" />
                       </button>
-                      <button 
-                        onClick={() => handleDelete(file.id)}
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors">
-                        <MoreVertical className="w-4 h-4" />
-                      </button>
+                      {(user?.id === file.user?.id || user?.role === 'admin') && (
+                        <button 
+                          onClick={() => handleDelete(file.id)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -261,6 +280,39 @@ export default function Files() {
           </table>
         </div>
       </div>
+
+      {/* Modal de Confirmação de Exclusão */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 mx-auto mb-4">
+                <Trash2 className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900 mb-2">Confirmar Exclusão</h3>
+              <p className="text-slate-500 text-sm font-medium px-4">
+                Tem certeza que deseja excluir permanentemente este arquivo? Esta ação não pode ser desfeita.
+              </p>
+            </div>
+            <div className="p-6 bg-slate-50 flex flex-col gap-2">
+              <button 
+                onClick={confirmDelete}
+                disabled={isActionLoading}
+                className="w-full py-3 bg-red-600 text-white font-black rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-100 disabled:opacity-50"
+              >
+                {isActionLoading ? 'Excluindo...' : 'Sim, Excluir Arquivo'}
+              </button>
+              <button 
+                onClick={() => setDeleteModal({ isOpen: false, fileId: null })}
+                disabled={isActionLoading}
+                className="w-full py-3 text-slate-500 font-bold hover:bg-white hover:shadow-sm rounded-xl transition-all"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
