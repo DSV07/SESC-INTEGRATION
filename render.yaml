@@ -1,7 +1,7 @@
 services:
   - type: web
     name: projeto-integrador-sesc
-    runtime: node
+    runtime: docker
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:

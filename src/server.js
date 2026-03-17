@@ -62,8 +62,10 @@ async function startServer() {
   }
 
   const PORT = env.PORT || 3000;
+  console.log(`🌍 Ambiente (process.env.NODE_ENV): ${process.env.NODE_ENV}`);
+  console.log(`🚀 Servidor rodando em http://localhost:${PORT} em modo ${env.NODE_ENV}`);
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Servidor rodando em http://localhost:${PORT} em modo ${env.NODE_ENV}`);
+    console.log(`📡 Ouvindo na porta ${PORT}`);
   });
 }
 
