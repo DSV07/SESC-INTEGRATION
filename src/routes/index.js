@@ -45,11 +45,22 @@ routes.get('/notes', asyncHandler(async (req, res) => {
 routes.post('/notes', asyncHandler(async (req, res) => {
   const note = await notesService.create(req.user.id, req.body);
   await activityService.log(req.user.id, { type: 'NOTE_CREATE', description: `Criou a nota: ${note.title}` });
+  
+  const io = req.app.get('io');
+  io.emit(`notes_updated_${req.user.id}`, { action: 'CREATE', note });
+  
   res.json(note);
 }));
 
 routes.patch('/notes/:id', asyncHandler(async (req, res) => {
   const note = await notesService.update(req.user.id, req.params.id, req.body);
+  
+  const io = req.app.get('io');
+  // Notifica o dono
+  io.emit(`notes_updated_${note.user_id}`, { action: 'UPDATE', note });
+  // Notifica quem compartilha (simplificado - emitindo para salas ou filtrando no front)
+  io.emit(`note_sync_${req.params.id}`, { action: 'UPDATE', note });
+  
   res.json(note);
 }));
 
@@ -60,6 +71,11 @@ routes.post('/notes/:id/share', asyncHandler(async (req, res) => {
 
 routes.delete('/notes/:id', asyncHandler(async (req, res) => {
   await notesService.delete(req.user.id, req.params.id);
+  
+  const io = req.app.get('io');
+  io.emit(`notes_updated_${req.user.id}`, { action: 'DELETE', noteId: req.params.id });
+  io.emit(`note_sync_${req.params.id}`, { action: 'DELETE', noteId: req.params.id });
+
   res.json({ success: true });
 }));
 
@@ -72,6 +88,10 @@ routes.get('/planner', asyncHandler(async (req, res) => {
 routes.post('/planner', asyncHandler(async (req, res) => {
   const task = await plannerService.create(req.user.id, req.body);
   await activityService.log(req.user.id, { type: 'TASK_CREATE', description: `Criou a tarefa: ${task.title}` });
+  
+  const io = req.app.get('io');
+  io.emit(`tasks_updated_${req.user.id}`, { action: 'CREATE', task });
+  
   res.json(task);
 }));
 
@@ -85,11 +105,23 @@ routes.patch('/planner/:id', asyncHandler(async (req, res) => {
   if (req.body.status === 'COMPLETED') {
     await activityService.log(req.user.id, { type: 'TASK_COMPLETE', description: `Concluiu a tarefa: ${task.title}` });
   }
+
+  const io = req.app.get('io');
+  // Notifica o dono
+  io.emit(`tasks_updated_${task.user_id}`, { action: 'UPDATE', task });
+  // Notifica quem compartilha
+  io.emit(`task_sync_${req.params.id}`, { action: 'UPDATE', task });
+
   res.json(task);
 }));
 
 routes.delete('/planner/:id', asyncHandler(async (req, res) => {
   await plannerService.delete(req.user.id, req.params.id);
+  
+  const io = req.app.get('io');
+  io.emit(`tasks_updated_${req.user.id}`, { action: 'DELETE', taskId: req.params.id });
+  io.emit(`task_sync_${req.params.id}`, { action: 'DELETE', taskId: req.params.id });
+
   res.json({ success: true });
 }));
 
@@ -142,5 +174,14 @@ routes.post('/notifications/read-all', asyncHandler(async (req, res) => {
   await notificationsService.markAllAsRead(req.user.id);
   res.json({ success: true });
 }));
+
+// Health Check
+routes.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
 
 export { routes };

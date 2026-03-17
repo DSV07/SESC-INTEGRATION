@@ -33,11 +33,13 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIsO
       isOpen ? "translate-x-0" : "-translate-x-full"
     )}>
       <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 shrink-0">
-        <div className="flex items-center gap-2 text-blue-800 font-bold text-xl">
-          <div className="w-8 h-8 rounded-lg bg-orange-500 flex items-center justify-center text-white">
-            S
-          </div>
-          SESC Integration
+        <div className="flex items-center gap-2">
+          <img 
+            src="https://portal-bucket.azureedge.net/wp-content/sites/261/2024/12/sesc-logo-F184943794-seeklogo.com-1.png" 
+            alt="SESC Logo" 
+            className="h-8 object-contain"
+          />
+          <span className="text-blue-800 font-bold text-lg hidden sm:inline">Integration</span>
         </div>
         <button 
           className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg"

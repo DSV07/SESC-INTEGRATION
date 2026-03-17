@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
 import { Plus, CheckCircle2, Circle, Trash2, Calendar as CalendarIcon, Clock, MoreVertical, Share2, Users, Edit3 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -18,8 +19,9 @@ interface Task {
 }
 
 export default function Planner() {
-  const { token } = useAuthStore();
+  const { user, token } = useAuthStore();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
@@ -48,7 +50,36 @@ export default function Planner() {
 
   useEffect(() => {
     fetchTasks();
+
+    // Configurar Socket
+    const newSocket = io({
+      auth: { token }
+    });
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
   }, [token]);
+
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    // Ouvir atualizações de tarefas próprias
+    socket.on(`tasks_updated_${user.id}`, (data: { action: string, task?: Task, taskId?: number }) => {
+      if (data.action === 'CREATE' && data.task) {
+        setTasks(prev => [data.task!, ...prev]);
+      } else if (data.action === 'UPDATE' && data.task) {
+        setTasks(prev => prev.map(t => t.id === data.task!.id ? data.task! : t));
+      } else if (data.action === 'DELETE' && data.taskId) {
+        setTasks(prev => prev.filter(t => t.id !== Number(data.taskId)));
+      }
+    });
+
+    return () => {
+      socket.off(`tasks_updated_${user.id}`);
+    };
+  }, [socket, user]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -14,6 +14,9 @@ async function startServer() {
     cors: { origin: '*' },
   });
 
+  // Disponibilizar io para as rotas/controllers
+  app.set('io', io);
+
   // Socket.IO Handlers
   io.on('connection', (socket) => {
     console.log('🔌 Novo socket conectado:', socket.id);

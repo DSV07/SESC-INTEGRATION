@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
 import { Plus, Pin, Trash2, MoreVertical, Palette, Share2, Users, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
@@ -26,8 +27,9 @@ const colors = [
 ];
 
 export default function Notes() {
-  const { token } = useAuthStore();
+  const { user, token } = useAuthStore();
   const [notes, setNotes] = useState<Note[]>([]);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
@@ -51,7 +53,36 @@ export default function Notes() {
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false));
+
+    // Configurar Socket
+    const newSocket = io({
+      auth: { token }
+    });
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
   }, [token]);
+
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    // Ouvir atualizações de notas próprias
+    socket.on(`notes_updated_${user.id}`, (data: { action: string, note?: Note, noteId?: number }) => {
+      if (data.action === 'CREATE' && data.note) {
+        setNotes(prev => [data.note!, ...prev].sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned)));
+      } else if (data.action === 'UPDATE' && data.note) {
+        setNotes(prev => prev.map(n => n.id === data.note!.id ? data.note! : n).sort((a, b) => Number(b.is_pinned) - Number(a.is_pinned)));
+      } else if (data.action === 'DELETE' && data.noteId) {
+        setNotes(prev => prev.filter(n => n.id !== Number(data.noteId)));
+      }
+    });
+
+    return () => {
+      socket.off(`notes_updated_${user.id}`);
+    };
+  }, [socket, user]);
 
   const handleSave = async () => {
     if (!newTitle.trim() && !newContent.trim()) {
