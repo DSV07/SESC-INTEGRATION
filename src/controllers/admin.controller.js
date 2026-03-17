@@ -1,4 +1,5 @@
 import { prisma } from '../config/db.js';
+import { channelsService } from '../services/channels.service.js';
 import bcrypt from 'bcryptjs';
 
 export class AdminController {
@@ -174,6 +175,37 @@ export class AdminController {
     } catch (error) {
       res.status(500).json({ error: 'Erro ao limpar mensagens do canal.' });
     }
+  }
+
+  // Canais
+  async createChannel(req, res) {
+    const channel = await channelsService.createChannel(req.body);
+    res.json(channel);
+  }
+
+  async updateChannel(req, res) {
+    const channel = await channelsService.updateChannel(req.params.id, req.body);
+    res.json(channel);
+  }
+
+  async deleteChannel(req, res) {
+    await channelsService.deleteChannel(req.params.id);
+    res.json({ success: true });
+  }
+
+  async sendAnnouncement(req, res) {
+    const { channelId, content } = req.body;
+    const message = await channelsService.createMessage({
+      channel_id: parseInt(channelId),
+      user_id: req.user.id,
+      content,
+      is_announcement: true
+    });
+
+    const io = req.app.get('io');
+    io.to(`channel_${channelId}`).emit('receive_message', message);
+    
+    res.json(message);
   }
 }
 

@@ -2,7 +2,28 @@ import { prisma } from '../config/db.js';
 
 export class ChannelsService {
   async getAll() {
-    return await prisma.channel.findMany();
+    return await prisma.channel.findMany({
+      orderBy: { name: 'asc' }
+    });
+  }
+
+  async createChannel({ name, description }) {
+    return await prisma.channel.create({
+      data: { name, description }
+    });
+  }
+
+  async updateChannel(id, { name, description }) {
+    return await prisma.channel.update({
+      where: { id: Number(id) },
+      data: { name, description }
+    });
+  }
+
+  async deleteChannel(id) {
+    return await prisma.channel.delete({
+      where: { id: Number(id) }
+    });
   }
 
   async getMessages(channelId) {
@@ -30,12 +51,13 @@ export class ChannelsService {
     }));
   }
 
-  async createMessage({ channel_id, user_id, content }) {
+  async createMessage({ channel_id, user_id, content, is_announcement = false }) {
     const message = await prisma.message.create({
       data: {
         channel_id,
         user_id,
         content,
+        is_announcement
       },
       include: {
         user: {

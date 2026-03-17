@@ -31,7 +31,11 @@ adminRoutes.post('/units', adminController.createUnit);
 adminRoutes.put('/units/:id', adminController.updateUnit);
 adminRoutes.delete('/units/:id', adminController.deleteUnit);
 
-// Limpeza de Chat
+// Canais e Mensagens
+adminRoutes.post('/channels', adminController.createChannel);
+adminRoutes.put('/channels/:id', adminController.updateChannel);
+adminRoutes.delete('/channels/:id', adminController.deleteChannel);
 adminRoutes.delete('/channels/:channelId/messages', adminController.clearChannelMessages);
+adminRoutes.post('/announcements', adminController.sendAnnouncement);
 
 export { adminRoutes };

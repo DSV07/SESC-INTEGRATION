@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
-import { Send, Hash, UserCircle, ChevronLeft, AtSign, ArrowDown } from 'lucide-react';
+import { Send, Hash, UserCircle, ChevronLeft, AtSign, ArrowDown, Megaphone } from 'lucide-react';
 import { format } from 'date-fns';
 import { clsx } from 'clsx';
 import { useSearchParams } from 'react-router-dom';
@@ -23,6 +23,7 @@ interface Message {
   user_role_tag?: string;
   user_dept_tag?: string;
   user_unit_tag?: string;
+  is_announcement?: boolean;
 }
 
 export default function Chat() {
@@ -295,7 +296,8 @@ export default function Chat() {
                       className={clsx(
                         "flex gap-3 transition-all duration-1000 p-2 rounded-xl",
                         isMe ? 'flex-row-reverse' : '',
-                        isHighlighted ? 'bg-indigo-50 ring-2 ring-indigo-200' : ''
+                        isHighlighted ? 'bg-indigo-50 ring-2 ring-indigo-200' : '',
+                        msg.is_announcement ? 'bg-orange-50/80 border border-orange-200 shadow-sm' : ''
                       )}
                     >
                       {showHeader ? (
@@ -324,11 +326,19 @@ export default function Chat() {
                             </span>
                           </div>
                         )}
-                        <div className={`px-4 py-2 rounded-2xl text-sm leading-relaxed ${
-                          isMe 
-                            ? 'bg-blue-600 text-white rounded-tr-none' 
-                            : 'bg-slate-100 text-slate-900 rounded-tl-none'
+                        <div className={`px-4 py-2 rounded-2xl text-sm leading-relaxed relative ${
+                          msg.is_announcement
+                            ? 'bg-orange-600 text-white rounded-tl-none shadow-lg'
+                            : isMe 
+                              ? 'bg-blue-600 text-white rounded-tr-none' 
+                              : 'bg-slate-100 text-slate-900 rounded-tl-none'
                         }`}>
+                          {msg.is_announcement && (
+                            <div className="flex items-center gap-1.5 mb-1 opacity-90 border-b border-white/20 pb-1 mr-2">
+                              <Megaphone className="w-3.5 h-3.5" />
+                              <span className="text-[10px] font-black uppercase tracking-wider">Aviso Oficial</span>
+                            </div>
+                          )}
                           {renderMessageContent(msg.content)}
                         </div>
                       </div>

@@ -74,6 +74,7 @@ model Message {
   channel_id Int
   user_id    Int
   content    String   @db.Text
+  is_announcement Boolean @default(false)
   created_at DateTime @default(now())
   channel    Channel  @relation(fields: [channel_id], references: [id], onDelete: Cascade)
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)

@@ -9,11 +9,14 @@ import {
   Trash2, 
   Pencil,
   Save,
-  X 
+  X,
+  MessageSquare,
+  Megaphone,
+  Eraser
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
-type Tab = 'users' | 'roles' | 'depts' | 'units';
+type Tab = 'users' | 'roles' | 'depts' | 'units' | 'channels';
 
 export default function Admin() {
   const { token } = useAuthStore();
@@ -36,6 +39,7 @@ export default function Admin() {
       const endpoint = activeTab === 'users' ? '/api/admin/users' : 
                       activeTab === 'roles' ? '/api/admin/roles' :
                       activeTab === 'depts' ? '/api/admin/departments' :
+                      activeTab === 'channels' ? '/api/channels' :
                       '/api/admin/units';
       
       const res = await fetch(endpoint, {
@@ -78,6 +82,7 @@ export default function Admin() {
       const endpoint = activeTab === 'users' ? `/api/admin/users${editingItem ? `/${editingItem.id}` : ''}` : 
                         activeTab === 'roles' ? `/api/admin/roles${editingItem ? `/${editingItem.id}` : ''}` :
                         activeTab === 'depts' ? `/api/admin/departments${editingItem ? `/${editingItem.id}` : ''}` :
+                        activeTab === 'channels' ? `/api/admin/channels${editingItem ? `/${editingItem.id}` : ''}` :
                         `/api/admin/units${editingItem ? `/${editingItem.id}` : ''}`;
 
       const res = await fetch(endpoint, {
@@ -119,6 +124,7 @@ export default function Admin() {
       const endpoint = activeTab === 'users' ? `/api/admin/users/${deletingId}` : 
                         activeTab === 'roles' ? `/api/admin/roles/${deletingId}` :
                         activeTab === 'depts' ? `/api/admin/departments/${deletingId}` :
+                        activeTab === 'channels' ? `/api/admin/channels/${deletingId}` :
                         `/api/admin/units/${deletingId}`;
       
       const res = await fetch(endpoint, {
@@ -138,6 +144,50 @@ export default function Admin() {
       setDeleteError(err.message);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const [announcementModal, setAnnouncementModal] = useState<{ isOpen: boolean, channelId: number | null }>({
+    isOpen: false,
+    channelId: null
+  });
+  const [announcementText, setAnnouncementText] = useState('');
+
+  const sendAnnouncement = async () => {
+    if (!announcementModal.channelId || !announcementText.trim()) return;
+    
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/admin/announcements', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ channelId: announcementModal.channelId, content: announcementText })
+      });
+      if (res.ok) {
+        setAnnouncementModal({ isOpen: false, channelId: null });
+        setAnnouncementText('');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const clearMessages = async (channelId: number) => {
+    if (!confirm('Tem certeza que deseja limpar todas as mensagens deste canal?')) return;
+    
+    try {
+      const res = await fetch(`/api/admin/channels/${channelId}/messages`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) alert('Mensagens removidas.');
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -164,6 +214,7 @@ export default function Admin() {
           { id: 'roles', label: 'Cargos', icon: Briefcase },
           { id: 'depts', label: 'Departamentos', icon: Building2 },
           { id: 'units', label: 'Unidades', icon: MapPin },
+          { id: 'channels', label: 'Canais', icon: MessageSquare },
         ].map(tab => (
           <button
             key={tab.id}
@@ -209,8 +260,31 @@ export default function Admin() {
                       </div>
                     </td>
                   )}
+                  {activeTab === 'channels' && (
+                    <td className="px-6 py-4 text-sm text-slate-500">
+                      {item.description || 'Sem descrição'}
+                    </td>
+                  )}
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {activeTab === 'channels' && (
+                        <>
+                          <button 
+                            onClick={() => setAnnouncementModal({ isOpen: true, channelId: item.id })}
+                            className="p-1.5 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                            title="Mandar Aviso"
+                          >
+                            <Megaphone className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => clearMessages(item.id)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Limpar Mensagens"
+                          >
+                            <Eraser className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                       <button 
                         onClick={() => { setEditingItem(item); setFormData(item); setIsModalOpen(true); }}
                         className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -371,6 +445,19 @@ export default function Admin() {
                 </>
               )}
 
+              {activeTab === 'channels' && (
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 uppercase">Descrição (Opcional)</label>
+                    <textarea 
+                      value={formData.description || ''} 
+                      onChange={e => setFormData({...formData, description: e.target.value})}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none h-24"
+                    />
+                  </div>
+                </div>
+              )}
+
               {saveError && (
                 <div className="bg-red-50 border border-red-100 text-red-600 p-2 rounded-lg text-xs font-medium">
                   {saveError}
@@ -397,6 +484,44 @@ export default function Admin() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Modal de Aviso Admin */}
+      {announcementModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between font-bold text-slate-900">
+              <div className="flex items-center gap-2">
+                <Megaphone className="w-5 h-5 text-orange-600" />
+                <h2>Mandar Aviso Destacado</h2>
+              </div>
+              <button onClick={() => setAnnouncementModal({ isOpen: false, channelId: null })} className="text-slate-400 hover:bg-slate-100 p-1 rounded-full"><X className="w-5 h-5"/></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-500">Este aviso será destacado com um fundo especial e ícone de administrador para todos no canal.</p>
+              <textarea 
+                value={announcementText}
+                onChange={e => setAnnouncementText(e.target.value)}
+                placeholder="Escreva sua mensagem oficial..."
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none h-32 resize-none"
+              />
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setAnnouncementModal({ isOpen: false, channelId: null })}
+                  className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={sendAnnouncement}
+                  disabled={isSaving || !announcementText.trim()}
+                  className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-black hover:bg-orange-700 transition-colors shadow-lg shadow-orange-100 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isSaving ? 'Enviando...' : 'Enviar Agora'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
