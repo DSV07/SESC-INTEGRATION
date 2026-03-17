@@ -13,6 +13,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { adminController } from '../controllers/admin.controller.js';
 import { adminRoutes } from './admin.routes.js';
 import { notificationsService } from '../services/notifications.service.js';
+import { projectsService } from '../services/projects.service.js';
 
 const routes = Router();
 
@@ -45,22 +46,22 @@ routes.get('/notes', asyncHandler(async (req, res) => {
 routes.post('/notes', asyncHandler(async (req, res) => {
   const note = await notesService.create(req.user.id, req.body);
   await activityService.log(req.user.id, { type: 'NOTE_CREATE', description: `Criou a nota: ${note.title}` });
-  
+
   const io = req.app.get('io');
   io.emit(`notes_updated_${req.user.id}`, { action: 'CREATE', note });
-  
+
   res.json(note);
 }));
 
 routes.patch('/notes/:id', asyncHandler(async (req, res) => {
   const note = await notesService.update(req.user.id, req.params.id, req.body);
-  
+
   const io = req.app.get('io');
   // Notifica o dono
   io.emit(`notes_updated_${note.user_id}`, { action: 'UPDATE', note });
   // Notifica quem compartilha (simplificado - emitindo para salas ou filtrando no front)
   io.emit(`note_sync_${req.params.id}`, { action: 'UPDATE', note });
-  
+
   res.json(note);
 }));
 
@@ -71,7 +72,7 @@ routes.post('/notes/:id/share', asyncHandler(async (req, res) => {
 
 routes.delete('/notes/:id', asyncHandler(async (req, res) => {
   await notesService.delete(req.user.id, req.params.id);
-  
+
   const io = req.app.get('io');
   io.emit(`notes_updated_${req.user.id}`, { action: 'DELETE', noteId: req.params.id });
   io.emit(`note_sync_${req.params.id}`, { action: 'DELETE', noteId: req.params.id });
@@ -81,17 +82,18 @@ routes.delete('/notes/:id', asyncHandler(async (req, res) => {
 
 // Planner (Tasks)
 routes.get('/planner', asyncHandler(async (req, res) => {
-  const tasks = await plannerService.getAll(req.user.id);
+  const projectId = req.query.projectId;
+  const tasks = await plannerService.getAll(req.user.id, projectId);
   res.json(tasks);
 }));
 
 routes.post('/planner', asyncHandler(async (req, res) => {
   const task = await plannerService.create(req.user.id, req.body);
   await activityService.log(req.user.id, { type: 'TASK_CREATE', description: `Criou a tarefa: ${task.title}` });
-  
+
   const io = req.app.get('io');
   io.emit(`tasks_updated_${req.user.id}`, { action: 'CREATE', task });
-  
+
   res.json(task);
 }));
 
@@ -117,7 +119,7 @@ routes.patch('/planner/:id', asyncHandler(async (req, res) => {
 
 routes.delete('/planner/:id', asyncHandler(async (req, res) => {
   await plannerService.delete(req.user.id, req.params.id);
-  
+
   const io = req.app.get('io');
   io.emit(`tasks_updated_${req.user.id}`, { action: 'DELETE', taskId: req.params.id });
   io.emit(`task_sync_${req.params.id}`, { action: 'DELETE', taskId: req.params.id });
@@ -177,11 +179,38 @@ routes.post('/notifications/read-all', asyncHandler(async (req, res) => {
 
 // Health Check
 routes.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
 });
+
+// Projetos
+routes.get('/projects', asyncHandler(async (req, res) => {
+  const projects = await projectsService.getAll(req.user.id);
+  res.json(projects);
+}));
+
+routes.post('/projects', asyncHandler(async (req, res) => {
+  const project = await projectsService.create(req.user.id, req.body);
+  await activityService.log(req.user.id, { type: 'PROJECT_CREATE', description: `Criou o projeto: ${project.name}` });
+  res.json(project);
+}));
+
+routes.patch('/projects/:id', asyncHandler(async (req, res) => {
+  const project = await projectsService.update(req.user.id, req.params.id, req.body);
+  res.json(project);
+}));
+
+routes.delete('/projects/:id', asyncHandler(async (req, res) => {
+  await projectsService.delete(req.user.id, req.params.id);
+  res.json({ success: true });
+}));
+
+routes.post('/projects/:id/share', asyncHandler(async (req, res) => {
+  const share = await projectsService.share(req.user.id, req.params.id, req.body);
+  res.json(share);
+}));
 
 export { routes };

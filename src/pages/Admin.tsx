@@ -200,15 +200,15 @@ export default function Admin() {
         </div>
         <button 
           onClick={() => { setEditingItem(null); setFormData({}); setIsModalOpen(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm font-medium w-fit"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm font-medium w-fit shrink-0"
         >
           <Plus className="w-4 h-4" />
-          Novo {activeTab === 'users' ? 'Usuário' : activeTab === 'roles' ? 'Cargo' : activeTab === 'depts' ? 'Departamento' : 'Unidade'}
+          Novo {activeTab === 'users' ? 'Usuário' : activeTab === 'roles' ? 'Cargo' : activeTab === 'depts' ? 'Departamento' : activeTab === 'channels' ? 'Canal' : 'Unidade'}
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 gap-6">
+      <div className="flex border-b border-slate-200 gap-6 overflow-x-auto scrollbar-hide no-scrollbar">
         {[
           { id: 'users', label: 'Usuários', icon: Users },
           { id: 'roles', label: 'Cargos', icon: Briefcase },
@@ -231,19 +231,19 @@ export default function Admin() {
       </div>
 
       {/* Tabela ou Lista */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto overflow-y-hidden">
         {loading ? (
            <div className="p-12 text-center text-slate-500">Carregando dados...</div>
         ) : (
           <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-50 border-b border-slate-200 whitespace-nowrap">
               <tr>
                 <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase">Nome</th>
                 {activeTab === 'users' && <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase">E-mail / Cargo</th>}
                 <th className="px-6 py-3 text-xs font-bold text-slate-500 uppercase text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 whitespace-nowrap">
               {data.map(item => (
                 <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4">

@@ -3,7 +3,7 @@ import { prisma } from '../config/db.js';
 export class FilesService {
   async getAll(userId, isShared = false) {
     const location = isShared ? 'NETWORK' : 'PERSONAL';
-    const where = isShared 
+    const where = isShared
       ? { location: 'NETWORK' }
       : { user_id: userId, location: 'PERSONAL' };
 
@@ -30,7 +30,7 @@ export class FilesService {
   }
 
   async delete(userId, userRole, fileId) {
-    const where = userRole === 'admin' 
+    const where = userRole === 'admin'
       ? { id: Number(fileId) }
       : { id: Number(fileId), user_id: userId };
 

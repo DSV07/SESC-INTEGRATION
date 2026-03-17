@@ -28,6 +28,8 @@ model User {
   SharedNote    SharedNote[]
   SharedTask    SharedTask[]
   notifications Notification[]
+  projects      Project[]
+  ProjectShare  ProjectShare[]
 }
 
 model Notification {
@@ -112,17 +114,48 @@ model SharedNote {
 model Task {
   id          Int          @id @default(autoincrement())
   user_id     Int
+  project_id  Int?
   title       String
   description String?      @db.Text
   due_date    DateTime?
-  status      String       @default("PENDING")
+  status      String       @default("TODO") // TODO, IN_PROGRESS, REVIEW, DONE
+  priority    String       @default("MEDIUM") // LOW, MEDIUM, HIGH
+  order       Int          @default(0)
   is_shared   Boolean      @default(false)
   created_at  DateTime     @default(now())
   user        User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  project     Project?     @relation(fields: [project_id], references: [id], onDelete: SetNull)
   shares      SharedTask[]
 
   @@index([user_id], map: "tasks_user_id_fkey")
+  @@index([project_id])
   @@map("tasks")
+}
+
+model Project {
+  id          Int            @id @default(autoincrement())
+  name        String
+  description String?        @db.Text
+  color       String         @default("#3b82f6")
+  user_id     Int
+  user        User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  tasks       Task[]
+  shares      ProjectShare[]
+  created_at  DateTime       @default(now())
+
+  @@index([user_id])
+}
+
+model ProjectShare {
+  id         Int     @id @default(autoincrement())
+  project_id Int
+  user_id    Int
+  permission String  @default("VIEW") // VIEW or EDIT
+  project    Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  user       User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([user_id])
 }
 
 model SharedTask {
