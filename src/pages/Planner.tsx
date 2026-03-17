@@ -482,7 +482,10 @@ export default function Planner() {
         <div className="flex-1 flex gap-6 overflow-x-auto pb-4 custom-scrollbar items-start">
           <AnimatePresence mode="popLayout">
             {COLUMNS.map(column => (
-              <div key={column.id} className="min-w-[320px] max-w-[320px] flex flex-col h-full bg-slate-100/30 rounded-[2rem] border border-slate-200/50 p-2">
+              <div 
+                key={column.id} 
+                className="min-w-[320px] max-w-[320px] flex flex-col h-full rounded-[2rem] border bg-slate-100/30 border-slate-200/50 shadow-inner p-2"
+              >
                  <div className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                        <div className={clsx("w-2 h-2 rounded-full", column.id === 'DONE' ? 'bg-emerald-500' : column.id === 'IN_PROGRESS' ? 'bg-blue-500' : column.id === 'REVIEW' ? 'bg-amber-500' : 'bg-slate-400')} />
@@ -499,7 +502,7 @@ export default function Planner() {
                     </button>
                  </div>
 
-                 <div className="flex-1 flex flex-col gap-3 p-2 overflow-y-auto custom-scrollbar">
+                 <div className="flex-1 flex flex-col gap-3 p-2 custom-scrollbar overflow-y-auto">
                     {tasks.filter(t => t.status === column.id).map(task => (
                       <motion.div 
                         layout
@@ -572,11 +575,12 @@ export default function Planner() {
                                   </div>
                                )}
                                
-                               <div className="flex items-center gap-1">
+                               <div className="flex items-center gap-1.5 p-1 bg-slate-50 rounded-xl border border-slate-100 shadow-inner">
                                   {column.id !== 'TODO' && (
                                     <button 
                                       onClick={() => updateTaskStatus(task.id, COLUMNS[COLUMNS.findIndex(c => c.id === column.id) - 1].id as any)}
-                                      className="p-1 text-slate-300 hover:text-slate-600"
+                                      className="p-1.5 bg-white text-blue-600 hover:text-blue-700 rounded-lg shadow-sm border border-slate-100 hover:border-blue-200 transition-all font-black text-xs"
+                                      title="Mover para coluna anterior"
                                     >
                                        <ChevronLeft className="w-4 h-4" />
                                     </button>
@@ -584,7 +588,8 @@ export default function Planner() {
                                   {column.id !== 'DONE' && (
                                     <button 
                                       onClick={() => updateTaskStatus(task.id, COLUMNS[COLUMNS.findIndex(c => c.id === column.id) + 1].id as any)}
-                                      className="p-1 text-slate-300 hover:text-slate-600"
+                                      className="p-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg shadow-md shadow-blue-100 transition-all font-black text-xs"
+                                      title="Avançar para próxima coluna"
                                     >
                                        <ChevronRight className="w-4 h-4" />
                                     </button>
