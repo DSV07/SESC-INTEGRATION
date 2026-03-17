@@ -37,7 +37,7 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIsO
           <img 
             src="https://i.imgur.com/duvmHJf.png" 
             alt="SESC Logo" 
-            className="h-10 object-contain"
+            className="h-12 object-contain"
           />
         </div>
         <button 
