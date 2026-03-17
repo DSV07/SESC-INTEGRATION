@@ -8,10 +8,12 @@ import {
   Filter, 
   MoreVertical,
   FolderOpen,
-  Download
+  Download,
+  Eye
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { clsx } from 'clsx';
+import FilePreview from '../components/FilePreview';
 
 interface FileData {
   id: number;
@@ -37,6 +39,7 @@ export default function Files() {
     isOpen: false,
     fileId: null
   });
+  const [previewFile, setPreviewFile] = useState<FileData | null>(null);
 
   const fetchFiles = async () => {
     setIsLoading(true);
@@ -119,7 +122,6 @@ export default function Files() {
 
   const handleDownload = (file: FileData) => {
     try {
-      // O conteúdo vem em base64 (Data URL) do backend
       const link = document.createElement('a');
       link.href = (file as any).content;
       link.download = file.name;
@@ -129,6 +131,10 @@ export default function Files() {
     } catch (error) {
       console.error('Erro ao baixar arquivo:', error);
     }
+  };
+  
+  const handlePreview = (file: FileData) => {
+    setPreviewFile(file);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -230,9 +236,15 @@ export default function Files() {
                       <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-700 shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-all">
                         <File className="w-5 h-5" />
                       </div>
-                      <span className="text-sm font-bold text-slate-900 group-hover:text-blue-800 transition-colors truncate max-w-[200px]">
-                        {file.name}
-                      </span>
+                      <button 
+                        onClick={() => handlePreview(file)}
+                        className="text-left"
+                      >
+                        <span className="text-sm font-bold text-slate-900 group-hover:text-blue-800 transition-colors truncate max-w-[200px] block">
+                          {file.name}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium group-hover:text-blue-400 transition-colors">Clique para visualizar</span>
+                      </button>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-500">
@@ -248,6 +260,13 @@ export default function Files() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => handlePreview(file)}
+                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                        title="Visualizar"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <button 
                         onClick={() => handleDownload(file)}
                         className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
@@ -312,6 +331,17 @@ export default function Files() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Visualizador de Arquivos */}
+      {previewFile && (
+        <FilePreview 
+          isOpen={!!previewFile}
+          onClose={() => setPreviewFile(null)}
+          fileName={previewFile.name}
+          fileType={previewFile.type}
+          fileContent={previewFile.content || ''}
+        />
       )}
     </div>
   );
