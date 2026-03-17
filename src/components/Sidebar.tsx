@@ -35,11 +35,10 @@ export default function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIsO
       <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-2">
           <img 
-            src="https://portal-bucket.azureedge.net/wp-content/sites/261/2024/12/sesc-logo-F184943794-seeklogo.com-1.png" 
+            src="https://i.imgur.com/duvmHJf.png" 
             alt="SESC Logo" 
-            className="h-8 object-contain"
+            className="h-10 object-contain"
           />
-          <span className="text-blue-800 font-bold text-lg hidden sm:inline">Integration</span>
         </div>
         <button 
           className="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg"
