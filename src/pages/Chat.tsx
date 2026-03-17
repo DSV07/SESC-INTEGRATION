@@ -129,13 +129,13 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setNewMessage(value);
 
     const lastAtPos = value.lastIndexOf('@');
     if (lastAtPos !== -1) {
-      const query = value.slice(lastAtPos + 1).split(' ')[0];
+      const query = value.slice(lastAtPos + 1).split(/\s|\n/)[0];
       setMentionQuery(query);
       const filtered = users.filter(u => 
         u.name.toLowerCase().includes(query.toLowerCase())
@@ -144,6 +144,20 @@ export default function Chat() {
       setShowMentionList(filtered.length > 0);
     } else {
       setShowMentionList(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      if (showMentionList && filteredUsers.length > 0) {
+        // Se a lista de menções estiver aberta, seleciona a primeira
+        e.preventDefault();
+        handleMentionSelect(filteredUsers[0].name);
+      } else {
+        // Caso contrário, envia a mensagem
+        e.preventDefault();
+        sendMessage(e as unknown as React.FormEvent);
+      }
     }
   };
 
@@ -354,17 +368,24 @@ export default function Chat() {
               )}
 
               <form onSubmit={sendMessage} className="relative">
-                <input
-                  type="text"
+                <textarea
                   value={newMessage}
                   onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
                   placeholder={`Mensagem em #${activeChannel.name}`}
-                  className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+                  rows={1}
+                  className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium resize-none min-h-[44px] max-h-32"
+                  style={{ height: 'auto' }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = `${target.scrollHeight}px`;
+                  }}
                 />
                 <button
                   type="submit"
                   disabled={!newMessage.trim()}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                  className="absolute right-2 bottom-1.5 p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
                 >
                   <Send className="w-5 h-5" />
                 </button>
