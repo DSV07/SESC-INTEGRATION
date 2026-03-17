@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
-import { Send, Hash, UserCircle, ChevronLeft } from 'lucide-react';
+import { Send, Hash, UserCircle, ChevronLeft, AtSign, ArrowDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { clsx } from 'clsx';
+import { useSearchParams } from 'react-router-dom';
 
 interface Channel {
   id: number;
@@ -19,10 +20,14 @@ interface Message {
   created_at: string;
   user_name: string;
   user_avatar: string | null;
+  user_role_tag?: string;
+  user_dept_tag?: string;
+  user_unit_tag?: string;
 }
 
 export default function Chat() {
   const { user, token } = useAuthStore();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -30,7 +35,45 @@ export default function Chat() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [showChannelsOnMobile, setShowChannelsOnMobile] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<any[]>([]);
+  const [showMentionList, setShowMentionList] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
+
+  useEffect(() => {
+    const channelParam = searchParams.get('channel');
+
+    if (channelParam && channels.length > 0) {
+      const channel = channels.find(c => c.id === parseInt(channelParam));
+      if (channel) {
+        setActiveChannel(channel);
+        setShowChannelsOnMobile(false);
+      }
+    }
+  }, [searchParams, channels]);
+
+  useEffect(() => {
+    const msgParam = searchParams.get('message');
+    if (msgParam && !isLoading && messages.length > 0) {
+      const msgId = parseInt(msgParam);
+      setTimeout(() => {
+        messageRefs.current[msgId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightedMessageId(msgId);
+        setTimeout(() => setHighlightedMessageId(null), 3000);
+      }, 500);
+    }
+  }, [searchParams, isLoading, messages]);
+
+  useEffect(() => {
+    fetch('/api/users', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setUsers(data));
+  }, [token]);
 
   useEffect(() => {
     fetch('/api/channels', {
@@ -86,6 +129,32 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewMessage(value);
+
+    const lastAtPos = value.lastIndexOf('@');
+    if (lastAtPos !== -1) {
+      const query = value.slice(lastAtPos + 1).split(' ')[0];
+      setMentionQuery(query);
+      const filtered = users.filter(u => 
+        u.name.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+      setShowMentionList(filtered.length > 0);
+    } else {
+      setShowMentionList(false);
+    }
+  };
+
+  const handleMentionSelect = (userName: string) => {
+    const lastAtPos = newMessage.lastIndexOf('@');
+    const beforeAt = newMessage.slice(0, lastAtPos);
+    const afterMention = newMessage.slice(lastAtPos + 1 + mentionQuery.length);
+    setNewMessage(`${beforeAt}@${userName} ${afterMention}`);
+    setShowMentionList(false);
+  };
+
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !activeChannel || !socket || !user) return;
@@ -97,6 +166,28 @@ export default function Chat() {
     });
 
     setNewMessage('');
+    setShowMentionList(false);
+  };
+
+  const renderMessageContent = (content: string) => {
+    // Regex para encontrar menções (@Nome)
+    // Usamos um Split com captura para manter os delimitadores
+    const parts = content.split(/(@[A-Z-a-zÀ-ü\s]+?(?=\s|$))/g);
+    
+    return parts.map((part, i) => {
+      if (part.startsWith('@')) {
+        const potentialName = part.slice(1).trim();
+        const isUserMentioned = users.some(u => u.name === potentialName);
+        if (isUserMentioned) {
+          return (
+            <span key={i} className="font-bold text-blue-100 bg-blue-700/40 px-1 rounded mx-0.5">
+              @{potentialName}
+            </span>
+          );
+        }
+      }
+      return part;
+    });
   };
 
   return (
@@ -145,10 +236,26 @@ export default function Chat() {
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <Hash className="w-5 h-5 text-slate-400" />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <h3 className="font-bold text-slate-900 truncate">{activeChannel.name}</h3>
                 <p className="text-xs text-slate-500 truncate">{activeChannel.description}</p>
               </div>
+
+              <button 
+                onClick={() => {
+                  const myMentions = messages.filter(m => m.content.includes(`@${user?.name}`));
+                  if (myMentions.length > 0) {
+                    const first = myMentions[0];
+                    messageRefs.current[first.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setHighlightedMessageId(first.id);
+                    setTimeout(() => setHighlightedMessageId(null), 3000);
+                  }
+                }}
+                title="Ver minhas menções"
+                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <AtSign className="w-5 h-5" />
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
@@ -165,9 +272,18 @@ export default function Chat() {
                 messages.map((msg, idx) => {
                   const isMe = msg.user_id === user?.id;
                   const showHeader = idx === 0 || messages[idx - 1].user_id !== msg.user_id;
+                  const isHighlighted = highlightedMessageId === msg.id;
                   
                   return (
-                    <div key={msg.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
+                    <div 
+                      key={msg.id} 
+                      ref={el => messageRefs.current[msg.id] = el}
+                      className={clsx(
+                        "flex gap-3 transition-all duration-1000 p-2 rounded-xl",
+                        isMe ? 'flex-row-reverse' : '',
+                        isHighlighted ? 'bg-indigo-50 ring-2 ring-indigo-200' : ''
+                      )}
+                    >
                       {showHeader ? (
                         <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
                           {msg.user_avatar ? (
@@ -182,19 +298,24 @@ export default function Chat() {
                       
                       <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[70%]`}>
                         {showHeader && (
-                          <div className="flex items-baseline gap-2 mb-1">
+                          <div className="flex flex-wrap items-baseline gap-2 mb-1">
                             <span className="text-sm font-medium text-slate-900">{isMe ? 'Você' : msg.user_name}</span>
+                            <div className="flex gap-1 flex-wrap">
+                              {msg.user_role_tag && <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-bold border border-blue-100">{msg.user_role_tag}</span>}
+                              {msg.user_dept_tag && <span className="text-[10px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-full font-bold border border-emerald-100">{msg.user_dept_tag}</span>}
+                              {msg.user_unit_tag && <span className="text-[10px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-full font-bold border border-orange-100">{msg.user_unit_tag}</span>}
+                            </div>
                             <span className="text-xs text-slate-400">
                               {format(new Date(msg.created_at), 'HH:mm')}
                             </span>
                           </div>
                         )}
-                        <div className={`px-4 py-2 rounded-2xl text-sm ${
+                        <div className={`px-4 py-2 rounded-2xl text-sm leading-relaxed ${
                           isMe 
                             ? 'bg-blue-600 text-white rounded-tr-none' 
                             : 'bg-slate-100 text-slate-900 rounded-tl-none'
                         }`}>
-                          {msg.content}
+                          {renderMessageContent(msg.content)}
                         </div>
                       </div>
                     </div>
@@ -204,14 +325,41 @@ export default function Chat() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-4 border-t border-slate-200 shrink-0">
+            <div className="p-4 border-t border-slate-200 shrink-0 relative">
+              {showMentionList && (
+                <div className="absolute bottom-full left-4 mb-2 w-64 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden z-20 animate-in slide-in-from-bottom-2 duration-200">
+                  <div className="p-2 bg-slate-50 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Mencionar usuário
+                  </div>
+                  <div className="max-h-48 overflow-y-auto">
+                    {filteredUsers.map(u => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => handleMentionSelect(u.name)}
+                        className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-50 transition-colors text-left"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                          {u.avatar ? (
+                            <img src={u.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                          ) : (
+                            <UserCircle className="w-6 h-6 text-slate-400" />
+                          )}
+                        </div>
+                        <span className="text-sm font-medium text-slate-700">{u.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={sendMessage} className="relative">
                 <input
                   type="text"
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={handleInputChange}
                   placeholder={`Mensagem em #${activeChannel.name}`}
-                  className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
                 />
                 <button
                   type="submit"

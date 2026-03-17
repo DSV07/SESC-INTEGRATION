@@ -6,19 +6,27 @@ import {
   Folder, 
   StickyNote, 
   Settings,
+  Shield,
   X
 } from 'lucide-react';
 import { clsx } from 'clsx';
-
-const navItems = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Chat', path: '/chat', icon: MessageSquare },
-  { name: 'Planner', path: '/planner', icon: Calendar },
-  { name: 'Arquivos', path: '/files', icon: Folder },
-  { name: 'Notas', path: '/notes', icon: StickyNote },
-];
+import { useAuthStore } from '../store/authStore';
 
 export default function Sidebar({ isOpen, setIsOpen }: { isOpen: boolean, setIsOpen: (v: boolean) => void }) {
+  const { user } = useAuthStore();
+  
+  const navItems = [
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Chat', path: '/chat', icon: MessageSquare },
+    { name: 'Planner', path: '/planner', icon: Calendar },
+    { name: 'Arquivos', path: '/files', icon: Folder },
+    { name: 'Notas', path: '/notes', icon: StickyNote },
+  ];
+
+  if (user?.role === 'admin') {
+    navItems.push({ name: 'Administração', path: '/admin', icon: Shield });
+  }
+
   return (
     <aside className={clsx(
       "fixed inset-y-0 left-0 z-30 w-64 bg-white border-r border-slate-200 flex flex-col h-full transition-transform duration-300 ease-in-out lg:static lg:translate-x-0",

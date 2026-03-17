@@ -90,13 +90,6 @@ export default function Login() {
               {isLoading ? 'Autenticando...' : 'Entrar no Sistema'}
             </button>
           </div>
-          
-          <div className="text-center text-sm">
-            <span className="text-slate-500 font-medium">Equipe SESC? </span>
-            <Link to="/register" className="font-bold text-orange-600 hover:text-orange-700 underline underline-offset-4">
-              Crie seu acesso agora
-            </Link>
-          </div>
         </form>
       </div>
     </div>

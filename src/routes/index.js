@@ -10,6 +10,10 @@ import { channelsService } from '../services/channels.service.js';
 import { userController } from '../controllers/user.controller.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
+import { adminController } from '../controllers/admin.controller.js';
+import { adminRoutes } from './admin.routes.js';
+import { notificationsService } from '../services/notifications.service.js';
+
 const routes = Router();
 
 // Públicas
@@ -18,7 +22,11 @@ routes.use('/auth', authRoutes);
 // Protegidas (JWT)
 routes.use(authMiddleware);
 
+// Administrativas
+routes.use('/admin', adminRoutes);
+
 // Usuário
+routes.get('/users', adminController.getUsersForMentions);
 routes.put('/user/profile', asyncHandler(userController.updateProfile));
 routes.post('/user/change-password', asyncHandler(userController.changePassword));
 
@@ -112,6 +120,27 @@ routes.get('/channels', asyncHandler(async (req, res) => {
 routes.get('/channels/:id/messages', asyncHandler(async (req, res) => {
   const messages = await channelsService.getMessages(req.params.id);
   res.json(messages);
+}));
+
+// Notificações
+routes.get('/notifications', asyncHandler(async (req, res) => {
+  const notifications = await notificationsService.getAll(req.user.id);
+  res.json(notifications);
+}));
+
+routes.get('/notifications/unread-count', asyncHandler(async (req, res) => {
+  const count = await notificationsService.getUnreadCount(req.user.id);
+  res.json({ count });
+}));
+
+routes.patch('/notifications/:id/read', asyncHandler(async (req, res) => {
+  await notificationsService.markAsRead(req.params.id, req.user.id);
+  res.json({ success: true });
+}));
+
+routes.post('/notifications/read-all', asyncHandler(async (req, res) => {
+  await notificationsService.markAllAsRead(req.user.id);
+  res.json({ success: true });
 }));
 
 export { routes };

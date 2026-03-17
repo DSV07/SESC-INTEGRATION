@@ -5,7 +5,9 @@ interface User {
   name: string;
   email: string;
   role: string;
-  department: string;
+  system_role?: { name: string } | null;
+  department?: { name: string } | null;
+  unit?: { name: string } | null;
   avatar: string | null;
 }
 

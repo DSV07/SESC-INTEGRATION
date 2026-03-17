@@ -50,7 +50,9 @@ export class AuthService {
         name: true,
         email: true,
         role: true,
+        system_role: true,
         department: true,
+        unit: true,
         avatar: true,
       },
     });

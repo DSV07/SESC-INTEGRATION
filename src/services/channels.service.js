@@ -10,9 +10,10 @@ export class ChannelsService {
       where: { channel_id: Number(channelId) },
       include: {
         user: {
-          select: {
-            name: true,
-            avatar: true,
+          include: {
+            system_role: true,
+            department: true,
+            unit: true,
           }
         }
       },
@@ -23,6 +24,9 @@ export class ChannelsService {
       ...msg,
       user_name: msg.user.name,
       user_avatar: msg.user.avatar,
+      user_role_tag: msg.user.system_role?.name,
+      user_dept_tag: msg.user.department?.name,
+      user_unit_tag: msg.user.unit?.name,
     }));
   }
 

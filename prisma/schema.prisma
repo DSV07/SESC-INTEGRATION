@@ -8,20 +8,58 @@ datasource db {
 }
 
 model User {
-  id          Int          @id @default(autoincrement())
-  name        String
-  email       String       @unique
-  password    String
-  role        String       @default("Aluno")
-  department  String?
-  avatar      String?
-  files       File[]
-  messages    Message[]
-  notes       Note[]
-  activities  Activity[]
-  tasks       Task[]
-  SharedNote  SharedNote[]
-  SharedTask  SharedTask[]
+  id            Int               @id @default(autoincrement())
+  name          String
+  email         String            @unique
+  password      String
+  role          String            @default("user") // admin or user
+  avatar        String?
+  role_id       Int?
+  dept_id       Int?
+  unit_id       Int?
+  system_role   SystemRole?       @relation(fields: [role_id], references: [id])
+  department    SystemDepartment? @relation(fields: [dept_id], references: [id])
+  unit          SystemUnit?       @relation(fields: [unit_id], references: [id])
+  files         File[]
+  messages      Message[]
+  notes         Note[]
+  activities    Activity[]
+  tasks         Task[]
+  SharedNote    SharedNote[]
+  SharedTask    SharedTask[]
+  notifications Notification[]
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  type        String   // MENTION, etc
+  title       String
+  content     String
+  link        String?  // Ex: /chat?channel=1&message=123
+  is_read     Boolean  @default(false)
+  created_at  DateTime @default(now())
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model SystemRole {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[]
+}
+
+model SystemDepartment {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[]
+}
+
+model SystemUnit {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[]
 }
 
 model Channel {
@@ -37,8 +75,8 @@ model Message {
   user_id    Int
   content    String   @db.Text
   created_at DateTime @default(now())
-  channel    Channel  @relation(fields: [channel_id], references: [id])
-  user       User     @relation(fields: [user_id], references: [id])
+  channel    Channel  @relation(fields: [channel_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([channel_id], map: "Message_channel_id_fkey")
   @@index([user_id], map: "Message_user_id_fkey")
@@ -52,7 +90,7 @@ model Note {
   color      String       @default("#ffffff")
   is_pinned  Boolean      @default(false)
   created_at DateTime     @default(now())
-  user       User         @relation(fields: [user_id], references: [id])
+  user       User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
   shares     SharedNote[]
 
   @@index([user_id], map: "Note_user_id_fkey")
@@ -79,7 +117,7 @@ model Task {
   status      String       @default("PENDING")
   is_shared   Boolean      @default(false)
   created_at  DateTime     @default(now())
-  user        User         @relation(fields: [user_id], references: [id])
+  user        User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
   shares      SharedTask[]
 
   @@index([user_id], map: "tasks_user_id_fkey")
@@ -109,7 +147,7 @@ model File {
   location   String   @default("PERSONAL")
   is_shared  Boolean  @default(false)
   created_at DateTime @default(now())
-  user       User     @relation(fields: [user_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id], map: "File_user_id_fkey")
 }
@@ -120,7 +158,7 @@ model Activity {
   type        String
   description String
   created_at  DateTime @default(now())
-  user        User     @relation(fields: [user_id], references: [id])
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id], map: "activities_user_id_fkey")
   @@map("activities")

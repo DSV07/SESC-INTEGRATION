@@ -3,6 +3,7 @@ import { Server } from 'socket.io';
 import { app } from './express-app.js';
 import { env } from './config/env.js';
 import { channelsService } from './services/channels.service.js';
+import { prisma } from './config/db.js';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import express from 'express';
@@ -30,11 +31,47 @@ async function startServer() {
     socket.on('send_message', async (data) => {
       try {
         const message = await channelsService.createMessage(data);
+        const user = await prisma.user.findUnique({
+          where: { id: data.user_id },
+          include: { system_role: true, department: true, unit: true }
+        });
+
         const formattedMessage = {
           ...message,
-          user_name: message.user.name,
-          user_avatar: message.user.avatar,
+          user_name: user.name,
+          user_avatar: user.avatar,
+          user_role_tag: user.system_role?.name,
+          user_dept_tag: user.department?.name,
+          user_unit_tag: user.unit?.name,
         };
+        
+        // Processar Menções
+        const mentions = data.content.match(/@([A-Z-a-zÀ-ü\s]+?)(?=\s|$)/g);
+        if (mentions) {
+          for (const mention of mentions) {
+            const userName = mention.slice(1).trim();
+            const mentionedUser = await prisma.user.findFirst({
+              where: { name: userName }
+            });
+
+            if (mentionedUser && mentionedUser.id !== data.user_id) {
+              // Criar Notificação no BD
+              const notification = await prisma.notification.create({
+                data: {
+                  user_id: mentionedUser.id,
+                  type: 'MENTION',
+                  title: 'Você foi mencionado!',
+                  content: `${user.name} mencionou você em uma mensagem.`,
+                  link: `/chat?channel=${data.channel_id}&message=${message.id}`
+                }
+              });
+
+              // Avisar o usuário em tempo real se ele estiver conectado
+              io.emit(`notification_${mentionedUser.id}`, notification);
+            }
+          }
+        }
+
         io.to(`channel_${data.channel_id}`).emit('receive_message', formattedMessage);
       } catch (error) {
         console.error('❌ Erro ao enviar mensagem via socket:', error);
