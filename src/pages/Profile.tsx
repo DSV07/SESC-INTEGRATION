@@ -6,7 +6,6 @@ export default function Profile() {
   const { user, token, logout, setUser } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
-  const [department, setDepartment] = useState(user?.department || '');
   const [avatar, setAvatar] = useState(user?.avatar || '');
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +20,7 @@ export default function Profile() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ name, department, avatar })
+        body: JSON.stringify({ name, avatar })
       });
 
       if (res.ok) {
@@ -82,7 +81,6 @@ export default function Profile() {
                     onClick={() => {
                       setIsEditing(false);
                       setName(user.name);
-                      setDepartment(user.department || '');
                       setAvatar(user.avatar || '');
                     }}
                     className="flex-1 sm:flex-none px-6 py-2.5 bg-slate-100 text-slate-700 text-sm font-bold rounded-2xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
@@ -153,16 +151,7 @@ export default function Profile() {
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Departamento</p>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={department}
-                      onChange={e => setDepartment(e.target.value)}
-                      className="w-full bg-white border-slate-200 rounded-lg text-sm font-bold focus:ring-indigo-500"
-                    />
-                  ) : (
-                    <p className="text-slate-900 font-bold">{user.department || 'Geral'}</p>
-                  )}
+                  <p className="text-slate-900 font-bold">{user.department?.name || 'Geral'}</p>
                 </div>
               </div>
             </div>

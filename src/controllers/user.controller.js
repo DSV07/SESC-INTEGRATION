@@ -8,7 +8,12 @@ export class UserController {
     try {
       const user = await prisma.user.update({
         where: { id: req.user.id },
-        data: { name, department, avatar },
+        data: { name, avatar },
+        include: {
+          system_role: true,
+          department: true,
+          unit: true
+        }
       });
       const { password: _, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
