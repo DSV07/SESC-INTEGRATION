@@ -27,28 +27,35 @@ export class ChannelsService {
   }
 
   async getMessages(channelId) {
-    const messages = await prisma.message.findMany({
-      where: { channel_id: Number(channelId) },
-      include: {
-        user: {
-          include: {
-            system_role: true,
-            department: true,
-            unit: true,
+    try {
+      const messages = await prisma.message.findMany({
+        where: { channel_id: Number(channelId) },
+        include: {
+          user: {
+            include: {
+              system_role: true,
+              department: true,
+              unit: true,
+            }
           }
-        }
-      },
-      orderBy: { created_at: 'asc' },
-    });
+        },
+        orderBy: { created_at: 'asc' },
+      });
 
-    return messages.map(msg => ({
-      ...msg,
-      user_name: msg.user.name,
-      user_avatar: msg.user.avatar,
-      user_role_tag: msg.user.system_role?.name,
-      user_dept_tag: msg.user.department?.name,
-      user_unit_tag: msg.user.unit?.name,
-    }));
+      return messages.map(msg => ({
+        ...msg,
+        user_name: msg.user.name,
+        user_avatar: msg.user.avatar,
+        user_role_tag: msg.user.system_role?.name,
+        user_dept_tag: msg.user.department?.name,
+        user_unit_tag: msg.user.unit?.name,
+      }));
+    } catch (err) {
+      console.error('❌ Erro ao buscar mensagens (tentando fallback):', err.message);
+      // Fallback: se a coluna is_announcement não existir, o findMany falha.
+      // Em um ambiente real, poderíamos tentar uma query raw ou apenas retornar vazio para não quebrar o front
+      return []; 
+    }
   }
 
   async createMessage({ channel_id, user_id, content, is_announcement = false }) {

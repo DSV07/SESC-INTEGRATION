@@ -9,6 +9,17 @@ import path from 'path';
 import express from 'express';
 
 async function startServer() {
+  // Sincronização de emergência: Adiciona a coluna se ela não existir
+  try {
+    console.log('🔄 Verificando esquema do banco de dados...');
+    await prisma.$executeRawUnsafe(`
+      ALTER TABLE Message ADD COLUMN IF NOT EXISTS is_announcement BOOLEAN DEFAULT FALSE;
+    `);
+    console.log('✅ Banco de dados sincronizado.');
+  } catch (dbErr) {
+    console.log('⚠️ Aviso: Não foi possível adicionar a coluna is_announcement (pode já existir ou sem permissão).');
+  }
+
   const server = createServer(app);
   const io = new Server(server, {
     cors: { origin: '*' },
